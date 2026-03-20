@@ -8,7 +8,7 @@
 
 ## Abstract
 
-This document specifies Tychons, an algorithm for generating deterministic, human-distinguishable visual identities from public cryptographic keys. A Tychons consists of two components: a constellation-style graphical badge and a two-word checksum phrase. Together these allow users to verify public key identity through rapid visual and linguistic comparison without inspecting raw key material.
+This document specifies Tychons, an algorithm for generating deterministic, human-distinguishable visual identities from public cryptographic keys. A Tychon consists of two components: a constellation-style graphical badge and a two-word checksum phrase. Together these allow users to verify public key identity through rapid visual and linguistic comparison without inspecting raw key material.
 
 ---
 

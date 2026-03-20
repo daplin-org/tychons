@@ -175,7 +175,8 @@ Standard CSS Color Module Level 3 conversion. The reference implementation inclu
 
 ## Test Vectors
 
-Test vectors are not yet populated in the specification. The reference implementation will provide canonical test values for the input key `"ssh-rsa AAAAB3NzaC1yc2E"`.
+![Test vector for key: "ssh-rsa AAAAB3NzaC1yc2E"](img/tychons.png)
+*"ssh-rsa AAAAB3NzaC1yc2E"*
 
 ---
 

@@ -8,7 +8,7 @@ nav_order: 4
 
 ## Requirements
 
-- **Python 3.13** or later
+- **Python 3.11** or later
 - **blake3** -- BLAKE3 hashing library
 - **Pillow** -- image rendering
 
