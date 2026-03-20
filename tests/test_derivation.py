@@ -14,16 +14,19 @@
 
 """Tests for phrase and visual parameter derivation determinism."""
 
-import pathlib
-import tempfile
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-import pytest
+if TYPE_CHECKING:
+    from pathlib import Path
+
 from tychons import Badge
-from tychons.tychons import _derive, _derive_hue, _derive_stars, _derive_words, _FALLBACK_WORDLIST
+from tychons.tychons import _FALLBACK_WORDLIST, _derive, _derive_hue, _derive_stars, _derive_words
 
 
-def test_phrase_determinism(sample_key):
+def test_phrase_determinism(sample_key: bytes) -> None:
     """Same key always produces the same phrase and words."""
     badge1 = Badge(sample_key)
     badge2 = Badge(sample_key)
@@ -31,27 +34,27 @@ def test_phrase_determinism(sample_key):
     assert badge1.words == badge2.words
 
 
-def test_phrase_differs_for_different_keys():
+def test_phrase_differs_for_different_keys() -> None:
     """Different keys produce different phrases (collision would be a bug)."""
     badge_a = Badge(b"key-aaaaaaaaaaaaaaaa")
     badge_b = Badge(b"key-bbbbbbbbbbbbbbbb")
     assert badge_a.phrase != badge_b.phrase
 
 
-def test_hue_determinism(sample_key):
+def test_hue_determinism(sample_key: bytes) -> None:
     """Same key always derives the same hue."""
     badge1 = Badge(sample_key)
     badge2 = Badge(sample_key)
     assert badge1._hue == badge2._hue
 
 
-def test_star_count_range(sample_key):
+def test_star_count_range(sample_key: bytes) -> None:
     """Star count must be in {6, 7, 8, 9, 10}."""
     badge = Badge(sample_key)
     assert len(badge._stars) in {6, 7, 8, 9, 10}
 
 
-def test_word_derivation_uses_wordlist(tmp_path):
+def test_word_derivation_uses_wordlist(tmp_path: Path) -> None:
     """Both words come from the custom wordlist when one is provided."""
     wordlist_file = tmp_path / "custom.txt"
     custom_words = ["alpha", "bravo", "charlie", "delta"]
@@ -67,7 +70,8 @@ def test_word_derivation_uses_wordlist(tmp_path):
 # Task 3.1 — Regression test vectors for the spec sample key
 # ---------------------------------------------------------------------------
 
-def test_spec_test_vector_values():
+
+def test_spec_test_vector_values() -> None:
     """Assert concrete derived values for the spec sample key using BLAKE3."""
     key = b"ssh-rsa AAAAB3NzaC1yc2E"
     hue = _derive_hue(key)
@@ -84,7 +88,8 @@ def test_spec_test_vector_values():
 # Task 3.2 — HMAC-SHA256 fallback tests
 # ---------------------------------------------------------------------------
 
-def test_hmac_fallback_derive():
+
+def test_hmac_fallback_derive() -> None:
     """_derive() with HAS_BLAKE3=False returns correct lengths and is deterministic."""
     key = b"test-key"
     context = "tychons v1 hue"
@@ -102,16 +107,17 @@ def test_hmac_fallback_derive():
 
     # Output should differ from BLAKE3 path
     import tychons.tychons as _mod
+
     if _mod.HAS_BLAKE3:
         blake3_out = _derive(key, context, length=32)
         assert out32 != blake3_out, "HMAC fallback should differ from BLAKE3"
 
 
-def test_hmac_fallback_badge():
+def test_hmac_fallback_badge() -> None:
     """Badge with HAS_BLAKE3=False produces valid SVG without error."""
     with patch("tychons.tychons.HAS_BLAKE3", False):
         badge = Badge(b"ssh-rsa AAAAB3NzaC1yc2E")
         svg = badge.svg
         assert svg.startswith("<svg"), "SVG output should start with <svg"
-        assert "word" not in svg or True  # just ensure no exception was raised
+        assert svg  # just ensure no exception was raised and output is non-empty
         assert badge.phrase  # non-empty phrase

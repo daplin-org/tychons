@@ -14,21 +14,26 @@
 
 """Tests for SVG output validity and XSS-escaping."""
 
-import xml.etree.ElementTree as ET
+from __future__ import annotations
 
-import pytest
+import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING
+
 from tychons import Badge
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def test_svg_is_well_formed_xml(fallback_badge):
+
+def test_svg_is_well_formed_xml(fallback_badge: Badge) -> None:
     """The SVG output must parse as well-formed XML without errors."""
     svg = fallback_badge.svg
     # fromstring raises xml.etree.ElementTree.ParseError on malformed input
-    root = ET.fromstring(svg)
+    root = ET.fromstring(svg)  # noqa: S314
     assert root is not None
 
 
-def test_svg_contains_expected_elements(fallback_badge):
+def test_svg_contains_expected_elements(fallback_badge: Badge) -> None:
     """The SVG must contain circle, line, and text elements."""
     svg = fallback_badge.svg
     assert "<circle" in svg
@@ -36,7 +41,7 @@ def test_svg_contains_expected_elements(fallback_badge):
     assert "<text" in svg
 
 
-def test_svg_xss_escape(tmp_path):
+def test_svg_xss_escape(tmp_path: Path) -> None:
     """Words containing XML-special characters must be escaped in SVG output."""
     wordlist_file = tmp_path / "xss.txt"
     # Two words with characters that are dangerous in XML contexts.
@@ -55,14 +60,14 @@ def test_svg_xss_escape(tmp_path):
     assert "&amp;" in svg
 
     # The SVG must still be well-formed after escaping.
-    ET.fromstring(svg)
+    ET.fromstring(svg)  # noqa: S314
 
 
-def test_svg_dimensions(sample_key):
+def test_svg_dimensions(sample_key: bytes) -> None:
     """The SVG root element must report width and height matching the requested size."""
     size = 200
     badge = Badge(sample_key, size=size)
     svg = badge.svg
-    root = ET.fromstring(svg)
+    root = ET.fromstring(svg)  # noqa: S314
     assert root.attrib["width"] == str(size)
     assert root.attrib["height"] == str(size)

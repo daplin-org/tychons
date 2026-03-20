@@ -35,19 +35,24 @@ By default, tychons looks for them in ./wordlists/<lang>.txt
 The search path can be overridden by passing wordlist_dir to Badge().
 """
 
-import math
+from __future__ import annotations
+
+import re as _re
 import struct
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 from xml.sax.saxutils import escape as _xml_escape
+
+if TYPE_CHECKING:
+    from PIL import Image, ImageDraw, ImageFont
 
 try:
     import blake3
+
     HAS_BLAKE3 = True
 except ImportError:
-    import hashlib
     HAS_BLAKE3 = False
     warnings.warn(
         "blake3 not found, falling back to SHA-256. Install with: pip install blake3",
@@ -56,6 +61,7 @@ except ImportError:
 
 try:
     from PIL import Image, ImageDraw, ImageFont
+
     HAS_PILLOW = True
 except ImportError:
     HAS_PILLOW = False
@@ -83,18 +89,18 @@ _CJK_LANGS = {
 # Map from lang code to wordlist filename stem (for non-obvious mappings)
 _LANG_FILE_MAP: dict[str, str] = {
     "zh-hans": "chinese_simplified",
-    "zh":      "chinese_simplified",
+    "zh": "chinese_simplified",
     "zh-hant": "chinese_traditional",
-    "ja":      "japanese",
-    "ko":      "korean",
+    "ja": "japanese",
+    "ko": "korean",
 }
 
 # Map from wordlist filename stem to Noto Sans font filename
 _LANG_FONT_MAP: dict[str, str] = {
-    "chinese_simplified":  "NotoSansSC-Regular.ttf",
+    "chinese_simplified": "NotoSansSC-Regular.ttf",
     "chinese_traditional": "NotoSansTC-Regular.ttf",
-    "japanese":            "NotoSansJP-Regular.ttf",
-    "korean":              "NotoSansKR-Regular.ttf",
+    "japanese": "NotoSansJP-Regular.ttf",
+    "korean": "NotoSansKR-Regular.ttf",
 }
 
 
@@ -103,8 +109,7 @@ def _is_cjk(lang: str | None) -> bool:
     return lang is not None and lang.lower() in _CJK_LANGS
 
 
-import re as _re
-_LANG_PATTERN = _re.compile(r'^[a-zA-Z0-9_-]+$')
+_LANG_PATTERN = _re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 def _validate_lang(lang: str) -> None:
@@ -145,18 +150,73 @@ def _resolve_font_path(lang: str | None, fonts_dir: Path | str | None = None) ->
     return base / filename
 
 
-
 # Built-in fallback — 64 words used when no BIP-39 file is available.
 # Replace or supplement by providing a full 2048-word BIP-39 file per language.
 _FALLBACK_WORDLIST: list[str] = [
-    "apple","birch","cedar","dusk","ember","frost","grove","haven",
-    "iris","jade","kelp","lunar","maple","nova","ocean","pine",
-    "quartz","river","stone","tide","umber","vale","willow","xenon",
-    "yew","zinc","amber","basil","coral","delta","echo","fern",
-    "glade","hazel","isle","juniper","kite","larch","moss","nettle",
-    "onyx","prism","reed","sage","thorn","veil","wren","yarrow",
-    "zephyr","aspen","bay","cliff","dew","estuary","flint","gorge",
-    "heath","inlet","jasper","knoll","ledge","mire","nook","ore",
+    "apple",
+    "birch",
+    "cedar",
+    "dusk",
+    "ember",
+    "frost",
+    "grove",
+    "haven",
+    "iris",
+    "jade",
+    "kelp",
+    "lunar",
+    "maple",
+    "nova",
+    "ocean",
+    "pine",
+    "quartz",
+    "river",
+    "stone",
+    "tide",
+    "umber",
+    "vale",
+    "willow",
+    "xenon",
+    "yew",
+    "zinc",
+    "amber",
+    "basil",
+    "coral",
+    "delta",
+    "echo",
+    "fern",
+    "glade",
+    "hazel",
+    "isle",
+    "juniper",
+    "kite",
+    "larch",
+    "moss",
+    "nettle",
+    "onyx",
+    "prism",
+    "reed",
+    "sage",
+    "thorn",
+    "veil",
+    "wren",
+    "yarrow",
+    "zephyr",
+    "aspen",
+    "bay",
+    "cliff",
+    "dew",
+    "estuary",
+    "flint",
+    "gorge",
+    "heath",
+    "inlet",
+    "jasper",
+    "knoll",
+    "ledge",
+    "mire",
+    "nook",
+    "ore",
 ]
 
 # Default directory to search for <lang>.txt wordlist files.
@@ -200,7 +260,8 @@ def load_wordlist(lang: str, wordlist_dir: Path | str | None = None) -> list[str
     if not path.exists():
         raise FileNotFoundError(f"Wordlist not found: {path}")
     words = [
-        line.strip() for line in path.read_text(encoding="utf-8").splitlines()
+        line.strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.startswith("#")
     ]
     if len(words) < 2:
@@ -221,19 +282,23 @@ def _resolve_wordlist(lang: str | None, wordlist_dir: Path | str | None) -> list
 # Key derivation
 # ---------------------------------------------------------------------------
 
+
 def _derive(key: bytes, context: str, length: int = 32) -> bytes:
     """Derive deterministic bytes from a key and a context string."""
     if HAS_BLAKE3:
         return blake3.blake3(key, derive_key_context=context).digest(length=length)
     else:
         # Fallback: HMAC-SHA256 with key material as HMAC key, context as message (HKDF-like pattern)
-        import hmac
         import hashlib
+        import hmac
+
         # Extend output by hashing with counter if more than 32 bytes needed
         result = b""
         counter = 0
         while len(result) < length:
-            result += hmac.new(key + counter.to_bytes(4, "big"), context.encode(), hashlib.sha256).digest()
+            result += hmac.new(
+                key + counter.to_bytes(4, "big"), context.encode(), hashlib.sha256
+            ).digest()
             counter += 1
         return result[:length]
 
@@ -247,13 +312,14 @@ def _bytes_to_floats(b: bytes) -> list[float]:
 # Star and edge data
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Star:
-    x: float          # canvas x (pixels)
-    y: float          # canvas y (pixels)
-    size: float       # radius in pixels
-    brightness: float # 0–1
-    neighbours: int   # how many NN edges to draw
+    x: float  # canvas x (pixels)
+    y: float  # canvas y (pixels)
+    size: float  # radius in pixels
+    brightness: float  # 0-1
+    neighbours: int  # how many NN edges to draw
 
 
 @dataclass
@@ -267,33 +333,34 @@ class _Layout:
 
     All values are in pixels at 1x. Multiply by scale for 2x render.
     """
-    div: float        # size of one division in pixels
-    pad: float        # 1 division from edge
-    star_x0: float    # left bound of star zone
-    star_x1: float    # right bound of star zone
-    star_y0: float    # top bound of star zone
-    star_y1: float    # bottom bound of star zone
-    label_y0: float   # top of label zone
-    label_y1: float   # bottom of label zone
-    label_cx: float   # horizontal center for label
-    star_w: float     # width of star zone
-    star_h: float     # height of star zone
-    label_h: float    # height of label zone
+
+    div: float  # size of one division in pixels
+    pad: float  # 1 division from edge
+    star_x0: float  # left bound of star zone
+    star_x1: float  # right bound of star zone
+    star_y0: float  # top bound of star zone
+    star_y1: float  # bottom bound of star zone
+    label_y0: float  # top of label zone
+    label_y1: float  # bottom of label zone
+    label_cx: float  # horizontal center for label
+    star_w: float  # width of star zone
+    star_h: float  # height of star zone
+    label_h: float  # height of label zone
     font_size: float  # font size that fills label zone comfortably
 
 
 def _layout(size: int) -> _Layout:
     """Compute grid layout for a badge of the given size."""
     div = size / 10.0
-    pad = div                       # 1 division
+    pad = div  # 1 division
 
     star_x0 = pad
-    star_x1 = size - pad            # divisions 1–9
+    star_x1 = size - pad  # divisions 1-9
     star_y0 = pad
-    star_y1 = size - pad * 3.5      # upper 6.5 divisions (top 3/4 of inner)
+    star_y1 = size - pad * 3.5  # upper 6.5 divisions (top 3/4 of inner)
 
     label_y0 = star_y1
-    label_y1 = size - pad           # lower 2.5 divisions (bottom 1/4 of inner)
+    label_y1 = size - pad  # lower 2.5 divisions (bottom 1/4 of inner)
 
     label_cx = size / 2.0
     star_w = star_x1 - star_x0
@@ -306,12 +373,18 @@ def _layout(size: int) -> _Layout:
     font_size = (label_h * 0.60) / 1.20
 
     return _Layout(
-        div=div, pad=pad,
-        star_x0=star_x0, star_x1=star_x1,
-        star_y0=star_y0, star_y1=star_y1,
-        label_y0=label_y0, label_y1=label_y1,
+        div=div,
+        pad=pad,
+        star_x0=star_x0,
+        star_x1=star_x1,
+        star_y0=star_y0,
+        star_y1=star_y1,
+        label_y0=label_y0,
+        label_y1=label_y1,
         label_cx=label_cx,
-        star_w=star_w, star_h=star_h, label_h=label_h,
+        star_w=star_w,
+        star_h=star_h,
+        label_h=label_h,
         font_size=font_size,
     )
 
@@ -343,9 +416,12 @@ def _nn_edges(stars: list[Star]) -> list[tuple[int, int]]:
     edges: set[tuple[int, int]] = set()
     for i, s in enumerate(stars):
         dists = sorted(
-            [(j, (stars[j].x - s.x) ** 2 + (stars[j].y - s.y) ** 2)
-             for j in range(len(stars)) if j != i],
-            key=lambda t: t[1]
+            [
+                (j, (stars[j].x - s.x) ** 2 + (stars[j].y - s.y) ** 2)
+                for j in range(len(stars))
+                if j != i
+            ],
+            key=lambda t: t[1],
         )
         for k in range(s.neighbours):
             if k < len(dists):
@@ -358,16 +434,18 @@ def _nn_edges(stars: list[Star]) -> list[tuple[int, int]]:
 # Color derivation
 # ---------------------------------------------------------------------------
 
+
 def _derive_hue(key: bytes) -> int:
-    """Derive a dominant hue (0–359) from the key."""
+    """Derive a dominant hue (0-359) from the key."""
     raw = _derive(key, "tychons v1 hue", length=4)
-    return struct.unpack(">I", raw)[0] % 360
+    (val,) = struct.unpack(">I", raw)
+    return int(val) % 360
 
 
 def _star_color(hue: int, brightness: float) -> tuple[int, int, int]:
     """Map hue + brightness to an RGB color via HSL.
 
-    Lightness is clamped to 60–88% to guarantee visibility against
+    Lightness is clamped to 60-88% to guarantee visibility against
     the fixed dark navy background (#080d14, ~5% lightness).
     """
     lightness = 0.60 + brightness * 0.28
@@ -390,12 +468,19 @@ def _hsl_to_rgb(h: int, s: float, lightness: float) -> tuple[int, int, int]:
     c = (1 - abs(2 * lightness - 1)) * s
     x = c * (1 - abs((h / 60) % 2 - 1))
     m = lightness - c / 2
-    if   h < 60:  r, g, b = c, x, 0
-    elif h < 120: r, g, b = x, c, 0
-    elif h < 180: r, g, b = 0, c, x
-    elif h < 240: r, g, b = 0, x, c
-    elif h < 300: r, g, b = x, 0, c
-    else:         r, g, b = c, 0, x
+    z = 0.0
+    if h < 60:
+        r, g, b = c, x, z
+    elif h < 120:
+        r, g, b = x, c, z
+    elif h < 180:
+        r, g, b = z, c, x
+    elif h < 240:
+        r, g, b = z, x, c
+    elif h < 300:
+        r, g, b = x, z, c
+    else:
+        r, g, b = c, z, x
     return (int((r + m) * 255), int((g + m) * 255), int((b + m) * 255))
 
 
@@ -403,16 +488,19 @@ def _hsl_to_rgb(h: int, s: float, lightness: float) -> tuple[int, int, int]:
 # Word derivation
 # ---------------------------------------------------------------------------
 
+
 def _derive_words(key: bytes, wordlist: list[str]) -> tuple[str, str]:
     """Derive two independent checksum words from non-overlapping contexts."""
     raw1 = _derive(key, "tychons v1 word_1", length=4)
     raw2 = _derive(key, "tychons v1 word_2", length=4)
-    w1 = wordlist[struct.unpack(">I", raw1)[0] % len(wordlist)]
-    w2 = wordlist[struct.unpack(">I", raw2)[0] % len(wordlist)]
+    (idx1,) = struct.unpack(">I", raw1)
+    (idx2,) = struct.unpack(">I", raw2)
+    w1 = wordlist[int(idx1) % len(wordlist)]
+    w2 = wordlist[int(idx2) % len(wordlist)]
     return w1, w2
 
 
-def _load_font(font_path: Path, size_px: int) -> "ImageFont.FreeTypeFont":
+def _load_font(font_path: Path, size_px: int) -> ImageFont.FreeTypeFont:
     """Load a font at the given pixel size, with graceful fallback.
 
     Tries in order:
@@ -430,7 +518,7 @@ def _load_font(font_path: Path, size_px: int) -> "ImageFont.FreeTypeFont":
     for path in candidates:
         try:
             return ImageFont.truetype(path, size_px)
-        except Exception:
+        except Exception:  # noqa: S112
             continue
     # True last resort — PIL default is always 10px, warn loudly
     warnings.warn(
@@ -438,7 +526,7 @@ def _load_font(font_path: Path, size_px: int) -> "ImageFont.FreeTypeFont":
         "Place NotoSans-Regular.ttf in the fonts/ directory alongside tychons.py.",
         stacklevel=3,
     )
-    return ImageFont.load_default()
+    return ImageFont.load_default()  # type: ignore[return-value]
 
 
 def _render(
@@ -450,7 +538,7 @@ def _render(
     bg_color: tuple[int, int, int],
     lang: str | None = None,
     fonts_dir: Path | str | None = None,
-) -> "Image.Image":
+) -> Image.Image:
     if not HAS_PILLOW:
         raise ImportError(
             "Pillow is required for PNG rendering. "
@@ -459,16 +547,20 @@ def _render(
         )
     # Render at 2x for antialiasing, then downsample
     scale = 2
-    S = size * scale
-    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    canvas_size = size * scale
+    img = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img, "RGBA")
 
     # Background rounded rect
     corner = int(12 * scale)
-    draw.rounded_rectangle([(0, 0), (S - 1, S - 1)], radius=corner, fill=bg_color + (255,))
+    draw.rounded_rectangle(
+        [(0, 0), (canvas_size - 1, canvas_size - 1)],
+        radius=corner,
+        fill=(*bg_color, 255),
+    )
 
     # Edges (drawn on a separate layer for alpha blending)
-    edge_layer = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    edge_layer = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
     edge_draw = ImageDraw.Draw(edge_layer, "RGBA")
     for i, j in edges:
         si, sj = stars[i], stars[j]
@@ -477,28 +569,28 @@ def _render(
         edge_draw.line(
             [(si.x * scale, si.y * scale), (sj.x * scale, sj.y * scale)],
             fill=col,
-            width=max(1, int(size * 0.008 * scale))
+            width=max(1, int(size * 0.008 * scale)),
         )
     img = Image.alpha_composite(img, edge_layer)
     draw = ImageDraw.Draw(img, "RGBA")
 
     # Stars
     for star in stars:
-        col = _star_color(hue, star.brightness)
+        star_col = _star_color(hue, star.brightness)
         r = star.size * scale
         cx, cy = star.x * scale, star.y * scale
-        draw.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=col + (255,))
+        draw.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=(*star_col, 255))
 
     # Label — grid layout, font sized by label zone height then clamped to width
     lo = _layout(size)
     label = f"{words[0]}  \u00b7  {words[1]}"
-    label_col = _hsl_to_rgb(hue, 0.55, 0.72) + (220,)
+    label_col = (*_hsl_to_rgb(hue, 0.55, 0.72), 220)
     font_size_1x = int(lo.font_size)
     font = _load_font(_resolve_font_path(lang, fonts_dir), font_size_1x * scale)
 
     # Measure and clamp to usable width (star_w = 8 divisions)
     usable_w_2x = int(lo.star_w * scale)
-    probe_img = Image.new("RGBA", (S * 2, font_size_1x * scale * 2))
+    probe_img = Image.new("RGBA", (canvas_size * 2, font_size_1x * scale * 2))
     probe_draw = ImageDraw.Draw(probe_img)
     bbox = probe_draw.textbbox((0, 0), label, font=font)
     text_w = bbox[2] - bbox[0]
@@ -507,25 +599,25 @@ def _render(
         font = _load_font(_resolve_font_path(lang, fonts_dir), font_size_1x * scale)
 
     # Fade covers the label zone — use a separate layer for correct alpha compositing
-    fade_layer = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    fade_layer = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
     fade_draw = ImageDraw.Draw(fade_layer)
     fade_top = int(lo.label_y0 * scale)
-    fade_height = S - fade_top
-    for row in range(fade_top, S):
+    fade_height = canvas_size - fade_top
+    for row in range(fade_top, canvas_size):
         alpha = int(200 * (row - fade_top) / fade_height)
-        fade_draw.line([(0, row), (S - 1, row)], fill=bg_color + (alpha,))
+        fade_draw.line([(0, row), (canvas_size - 1, row)], fill=(*bg_color, alpha))
     img = Image.alpha_composite(img, fade_layer)
     draw = ImageDraw.Draw(img, "RGBA")
 
     bbox = draw.textbbox((0, 0), label, font=font)
     tw = bbox[2] - bbox[0]
-    tx = (S - tw) // 2
+    tx = (canvas_size - tw) // 2
     # Place text baseline at label_y1 - 1 division from bottom edge
     ty = int(lo.label_y1 * scale) - int(lo.div * scale)
     draw.text((tx, ty), label, font=font, fill=label_col)
 
     # Downsample to target size with antialiasing
-    img = img.resize((size, size), Image.LANCZOS)
+    img = img.resize((size, size), Image.Resampling.LANCZOS)
 
     # Clip to rounded rect mask
     mask = Image.new("L", (size, size), 0)
@@ -556,14 +648,14 @@ def _render_svg(
     gradient_id = f"fade_{hue}"
     font_size = round(lo.font_size, 1)
     label = _xml_escape(f"{words[0]}  \u00b7  {words[1]}")
-    _SVG_FONT_FAMILY = {
-        "chinese_simplified":  "Noto Sans SC",
+    svg_font_family = {
+        "chinese_simplified": "Noto Sans SC",
         "chinese_traditional": "Noto Sans TC",
-        "japanese":            "Noto Sans JP",
-        "korean":              "Noto Sans KR",
+        "japanese": "Noto Sans JP",
+        "korean": "Noto Sans KR",
     }
     normalized = _lang_to_filename(lang) if lang else ""
-    font_family = _SVG_FONT_FAMILY.get(normalized, "Noto Sans")
+    font_family = svg_font_family.get(normalized, "Noto Sans")
 
     parts: list[str] = []
     parts.append(
@@ -573,24 +665,22 @@ def _render_svg(
 
     # Defs: clip path for rounded corners + gradient for label fade
     parts.append(
-        f'<defs>'
+        f"<defs>"
         f'<clipPath id="badge_clip">'
         f'<rect width="{size}" height="{size}" rx="{rx}"/>'
-        f'</clipPath>'
+        f"</clipPath>"
         f'<linearGradient id="{gradient_id}" x1="0" y1="0" x2="0" y2="1">'
         f'<stop offset="0%" stop-color="rgb({br},{bg},{bb})" stop-opacity="0"/>'
         f'<stop offset="100%" stop-color="rgb({br},{bg},{bb})" stop-opacity="0.82"/>'
-        f'</linearGradient>'
-        f'</defs>'
+        f"</linearGradient>"
+        f"</defs>"
     )
 
     # Clipping group — everything inside gets rounded corners
     parts.append('<g clip-path="url(#badge_clip)">')
 
     # Background
-    parts.append(
-        f'<rect width="{size}" height="{size}" fill="rgb({br},{bg},{bb})"/>'
-    )
+    parts.append(f'<rect width="{size}" height="{size}" fill="rgb({br},{bg},{bb})"/>')
 
     # Edges
     for i, j in edges:
@@ -599,7 +689,7 @@ def _render_svg(
         er, eg, eb, ea = _line_color(hue, mid_b, alpha=0.30 + mid_b * 0.40)
         opacity = round(ea / 255, 3)
         parts.append(
-            f'<line '
+            f"<line "
             f'x1="{si.x:.2f}" y1="{si.y:.2f}" '
             f'x2="{sj.x:.2f}" y2="{sj.y:.2f}" '
             f'stroke="rgb({er},{eg},{eb})" stroke-opacity="{opacity}" '
@@ -610,7 +700,7 @@ def _render_svg(
     for star in stars:
         sr, sg, sb = _star_color(hue, star.brightness)
         parts.append(
-            f'<circle '
+            f"<circle "
             f'cx="{star.x:.2f}" cy="{star.y:.2f}" r="{star.size:.2f}" '
             f'fill="rgb({sr},{sg},{sb})"/>'
         )
@@ -640,12 +730,12 @@ def _render_svg(
         f'font-size="{font_size}" font-weight="500" '
         f'letter-spacing="{letter_spacing}" '
         f'fill="rgb({lr},{lg},{lb})" fill-opacity="0.86">'
-        f'{label}'
-        f'</text>'
+        f"{label}"
+        f"</text>"
     )
 
-    parts.append('</g>')
-    parts.append('</svg>')
+    parts.append("</g>")
+    parts.append("</svg>")
     return "\n".join(parts)
 
 
@@ -653,13 +743,14 @@ def _render_svg(
 # Public API
 # ---------------------------------------------------------------------------
 
+
 class Badge:
     """
     Generate a deterministic constellation badge for a public key.
 
     Args:
         public_key:   The public key as a string or bytes.
-        size:         Badge size in pixels (default 128; works well from 64–256).
+        size:         Badge size in pixels (default 128; works well from 64-256).
         bg_color:     Background RGB tuple (default dark navy).
         lang:         BIP-39 language code for the checksum words, e.g. "en", "es",
                       "zh-hans". If None, the built-in 64-word fallback list is used.
@@ -685,9 +776,7 @@ class Badge:
             public_key = public_key.encode("utf-8")
 
         if not isinstance(size, int) or size < 16 or size > 4096:
-            raise ValueError(
-                f"size must be an integer between 16 and 4096 inclusive, got {size!r}"
-            )
+            raise ValueError(f"size must be an integer between 16 and 4096 inclusive, got {size!r}")
 
         if (
             not isinstance(bg_color, tuple)
@@ -712,8 +801,8 @@ class Badge:
         self._stars = _derive_stars(self._key, size)
         self._edges = _nn_edges(self._stars)
         self._words = _derive_words(self._key, wordlist)
-        self._image: Optional["Image.Image"] = None
-        self._svg: Optional[str] = None
+        self._image: Image.Image | None = None
+        self._svg: str | None = None
 
     @property
     def words(self) -> tuple[str, str]:
@@ -730,20 +819,30 @@ class Badge:
         """The rendered badge as an SVG string."""
         if self._svg is None:
             self._svg = _render_svg(
-                self._stars, self._edges, self._hue,
-                self._words, self._size, self._bg,
-                lang=self._lang, fonts_dir=self._fonts_dir,
+                self._stars,
+                self._edges,
+                self._hue,
+                self._words,
+                self._size,
+                self._bg,
+                lang=self._lang,
+                fonts_dir=self._fonts_dir,
             )
         return self._svg
 
     @property
-    def image(self) -> "Image.Image":
+    def image(self) -> Image.Image:
         """The rendered badge as a PIL Image (RGBA). Requires Pillow."""
         if self._image is None:
             self._image = _render(
-                self._stars, self._edges, self._hue,
-                self._words, self._size, self._bg,
-                lang=self._lang, fonts_dir=self._fonts_dir,
+                self._stars,
+                self._edges,
+                self._hue,
+                self._words,
+                self._size,
+                self._bg,
+                lang=self._lang,
+                fonts_dir=self._fonts_dir,
             )
         return self._image
 
@@ -763,6 +862,7 @@ class Badge:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     import sys

@@ -13,8 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from .tychons import Badge, load_wordlist, DEFAULT_FONTS_DIR, DEFAULT_WORDLIST_DIR
+from .tychons import DEFAULT_FONTS_DIR, DEFAULT_WORDLIST_DIR, Badge, load_wordlist
 
 __version__ = "0.1.0"
 
-__all__ = ["Badge", "load_wordlist", "DEFAULT_FONTS_DIR", "DEFAULT_WORDLIST_DIR", "__version__"]
+__all__ = ["DEFAULT_FONTS_DIR", "DEFAULT_WORDLIST_DIR", "Badge", "__version__", "load_wordlist"]

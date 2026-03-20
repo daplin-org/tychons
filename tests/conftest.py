@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+
 from tychons import Badge
 
 # The spec's test vector input key.

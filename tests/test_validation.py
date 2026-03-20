@@ -14,46 +14,49 @@
 
 """Tests for Badge parameter validation: size, lang, and bg_color."""
 
+from __future__ import annotations
+
 import pytest
+
 from tychons import Badge
 
 
-def test_size_zero_raises():
+def test_size_zero_raises() -> None:
     with pytest.raises(ValueError):
         Badge("key", size=0)
 
 
-def test_size_negative_raises():
+def test_size_negative_raises() -> None:
     with pytest.raises(ValueError):
         Badge("key", size=-1)
 
 
-def test_size_too_small_raises():
+def test_size_too_small_raises() -> None:
     with pytest.raises(ValueError):
         Badge("key", size=15)
 
 
-def test_size_too_large_raises():
+def test_size_too_large_raises() -> None:
     with pytest.raises(ValueError):
         Badge("key", size=5000)
 
 
-def test_size_minimum_succeeds():
+def test_size_minimum_succeeds() -> None:
     badge = Badge("key", size=16)
     assert badge is not None
 
 
-def test_size_maximum_succeeds():
+def test_size_maximum_succeeds() -> None:
     badge = Badge("key", size=4096)
     assert badge is not None
 
 
-def test_size_float_raises():
+def test_size_float_raises() -> None:
     with pytest.raises((ValueError, TypeError)):
-        Badge("key", size=128.0)
+        Badge("key", size=128.0)  # type: ignore[arg-type]
 
 
-def test_size_default_succeeds():
+def test_size_default_succeeds() -> None:
     badge = Badge("key")
     assert badge is not None
 
@@ -62,25 +65,26 @@ def test_size_default_succeeds():
 # Task 3.3 — lang path traversal security tests
 # ---------------------------------------------------------------------------
 
-def test_lang_path_traversal_dot_dot():
+
+def test_lang_path_traversal_dot_dot() -> None:
     """lang='../../etc/passwd' raises ValueError before any filesystem access."""
     with pytest.raises(ValueError, match="Invalid lang code"):
         Badge("key", lang="../../etc/passwd")
 
 
-def test_lang_path_traversal_slash():
+def test_lang_path_traversal_slash() -> None:
     """lang='foo/bar' raises ValueError before any filesystem access."""
     with pytest.raises(ValueError, match="Invalid lang code"):
         Badge("key", lang="foo/bar")
 
 
-def test_lang_null_byte():
+def test_lang_null_byte() -> None:
     """lang with a null byte raises ValueError before any filesystem access."""
     with pytest.raises(ValueError, match="Invalid lang code"):
         Badge("key", lang="en\x00")
 
 
-def test_lang_valid_codes():
+def test_lang_valid_codes() -> None:
     """Valid lang codes pass the validation step (may raise FileNotFoundError if no wordlist)."""
     for code in ("en", "zh-hans", "chinese_simplified"):
         try:
@@ -95,41 +99,42 @@ def test_lang_valid_codes():
 # Task 3.4 — bg_color validation tests
 # ---------------------------------------------------------------------------
 
-def test_bg_color_default_succeeds():
+
+def test_bg_color_default_succeeds() -> None:
     badge = Badge("key", bg_color=(8, 13, 20))
     assert badge is not None
 
 
-def test_bg_color_black_succeeds():
+def test_bg_color_black_succeeds() -> None:
     badge = Badge("key", bg_color=(0, 0, 0))
     assert badge is not None
 
 
-def test_bg_color_white_succeeds():
+def test_bg_color_white_succeeds() -> None:
     badge = Badge("key", bg_color=(255, 255, 255))
     assert badge is not None
 
 
-def test_bg_color_value_too_high_raises():
+def test_bg_color_value_too_high_raises() -> None:
     with pytest.raises(ValueError):
         Badge("key", bg_color=(256, 0, 0))
 
 
-def test_bg_color_negative_value_raises():
+def test_bg_color_negative_value_raises() -> None:
     with pytest.raises(ValueError):
         Badge("key", bg_color=(-1, 0, 0))
 
 
-def test_bg_color_wrong_length_raises():
+def test_bg_color_wrong_length_raises() -> None:
     with pytest.raises(ValueError):
-        Badge("key", bg_color=(0, 0))
+        Badge("key", bg_color=(0, 0))  # type: ignore[arg-type]
 
 
-def test_bg_color_list_raises():
+def test_bg_color_list_raises() -> None:
     with pytest.raises(ValueError):
-        Badge("key", bg_color=[8, 13, 20])
+        Badge("key", bg_color=[8, 13, 20])  # type: ignore[arg-type]
 
 
-def test_bg_color_float_element_raises():
+def test_bg_color_float_element_raises() -> None:
     with pytest.raises(ValueError):
-        Badge("key", bg_color=(8.0, 13, 20))
+        Badge("key", bg_color=(8.0, 13, 20))  # type: ignore[arg-type]
