@@ -1,3 +1,5 @@
+[![Lint & Type Check](https://github.com/daplin-org/tychons/actions/workflows/lint.yml/badge.svg)](https://github.com/daplin-org/tychons/actions/workflows/lint.yml)
+
 # Tychons
 
 **Visual identity badges for public cryptographic keys.**
