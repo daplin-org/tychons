@@ -1,8 +1,11 @@
-title: Tychon Badge
-description: Visual identity badges for public cryptographic keys
-theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
+plugins:
+  - jekyll-remote-theme
 
-url: "https://cwlls.github.io"
+title: Tychons
+description: Visual identity badges for public cryptographic keys
+
+url: "https://daplin-org.github.io"
 baseurl: "/tychons"
 
 # Exclude the spec source directory and other non-site files
