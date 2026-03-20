@@ -14,7 +14,7 @@ nav_order: 4
 
 ## Installation
 
-Tychon Badge is not yet published to PyPI. Install from source:
+Tychons is not yet published to PyPI. Install from source:
 
 ```bash
 git clone https://github.com/cwlls/tychons.git
@@ -82,7 +82,7 @@ The default is 128x128 pixels. The recommended range is 64--256. Badges are rend
 
 ### Language and Wordlists
 
-By default, Tychon Badge uses a built-in 64-word fallback list. For better entropy, provide a BIP-39 wordlist:
+By default, Tychons uses a built-in 64-word fallback list. For better entropy, provide a BIP-39 wordlist:
 
 1. Download a wordlist from the [Trezor BIP-39 repository](https://github.com/trezor/python-mnemonic/tree/master/src/mnemonic/wordlist).
 2. Place it in a `wordlists/` directory as `<lang>.txt` (e.g., `wordlists/en.txt`).

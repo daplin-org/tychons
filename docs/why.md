@@ -1,10 +1,10 @@
 ---
 layout: default
-title: Why Tychon Badge?
+title: Why Tychons?
 nav_order: 2
 ---
 
-# Why Tychon Badge?
+# Why Tychons?
 
 ## The Fingerprint Problem
 
@@ -39,9 +39,9 @@ But randomart has significant limitations:
 
 GitHub-style identicons and geometric avatars are visually distinct but are not derived from cryptographic key material. They serve a different purpose (visual differentiation of accounts) and are not suitable for key verification.
 
-## What Tychon Badge Does Differently
+## What Tychons Does Differently
 
-Tychon Badge encodes key material across three independent perceptual channels:
+Tychons encodes key material across three independent perceptual channels:
 
 ### 1. Color (Hue)
 
@@ -69,7 +69,7 @@ The channels are redundant by design. Verification should survive the loss of an
 
 ## Why Not Just Use a Longer Fingerprint?
 
-Because the problem is not entropy -- it is human perception. A 256-bit fingerprint has vastly more entropy than any visual representation. But entropy you cannot verify is entropy you do not use. Tychon Badge trades some theoretical precision for practical verifiability. The conservative estimate of perceptually distinct badges (approximately 1.3 billion with a 2048-word wordlist) far exceeds the realistic population of keys any individual will encounter.
+Because the problem is not entropy -- it is human perception. A 256-bit fingerprint has vastly more entropy than any visual representation. But entropy you cannot verify is entropy you do not use. Tychons trades some theoretical precision for practical verifiability. The conservative estimate of perceptually distinct badges (approximately 1.3 billion with a 2048-word wordlist) far exceeds the realistic population of keys any individual will encounter.
 
 ## Design Principles
 

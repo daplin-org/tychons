@@ -1,12 +1,12 @@
-# Tychon Badge
+# Tychons
 
 **Visual identity badges for public cryptographic keys.**
 
-Tychon Badge turns any public key into a deterministic, glanceable visual identity -- a small constellation-style image paired with a two-word checksum phrase. Two badges representing different keys are distinguishable at a glance, giving users a fast, human-friendly way to verify key authenticity without comparing raw fingerprints.
+Tychons turns any public key into a deterministic, glanceable visual identity -- a small constellation-style image paired with a two-word checksum phrase. Two badges representing different keys are distinguishable at a glance, giving users a fast, human-friendly way to verify key authenticity without comparing raw fingerprints.
 
 ## The Problem
 
-Public key fingerprints are long, opaque strings that humans are bad at comparing. SSH randomart improved on hex dumps, but it is monochrome, offers limited perceptual diversity, and provides no secondary verification channel. Tychon Badge derives multiple independent visual signals from the key -- color, star layout, and checksum words -- so that a mismatch on *any* channel is immediately noticeable.
+Public key fingerprints are long, opaque strings that humans are bad at comparing. SSH randomart improved on hex dumps, but it is monochrome, offers limited perceptual diversity, and provides no secondary verification channel. Tychons derives multiple independent visual signals from the key -- color, star layout, and checksum words -- so that a mismatch on *any* channel is immediately noticeable.
 
 ## What a Badge Contains
 
@@ -22,7 +22,7 @@ Because each channel is derived from a separate BLAKE3 context, an attacker who 
 
 ## Quick Start
 
-Tychon Badge requires **Python 3.13+** and two dependencies:
+Tychons requires **Python 3.13+** and two dependencies:
 
 ```bash
 pip install blake3 Pillow
@@ -74,17 +74,17 @@ Full details are in the [specification](docs/src/tychons-spec-v0.1.0.md).
 
 ## Accessibility
 
-Tychon Badge does not rely on color alone. Users with color vision deficiency can still distinguish badges by constellation shape, star count, star size distribution, and the two-word checksum phrase.
+Tychons does not rely on color alone. Users with color vision deficiency can still distinguish badges by constellation shape, star count, star size distribution, and the two-word checksum phrase.
 
 ## Security
 
-Tychon Badge is a **human verification aid**, not a cryptographic commitment scheme. It is designed for the common case of confirming a known contact's key -- not for resisting an adversary who can generate arbitrary key pairs searching for visual collisions. In high-security contexts, supplement badge comparison with out-of-band verification of the raw key fingerprint.
+Tychons is a **human verification aid**, not a cryptographic commitment scheme. It is designed for the common case of confirming a known contact's key -- not for resisting an adversary who can generate arbitrary key pairs searching for visual collisions. In high-security contexts, supplement badge comparison with out-of-band verification of the raw key fingerprint.
 
 With a 2048-word BIP-39 wordlist, the conservative estimate of perceptually distinct badges is approximately **1.3 billion**. The full combinatorial space is around 10^21.
 
 ## Documentation
 
-Full project documentation is available at the [Tychon Badge docs site](https://cwlls.github.io/tychons/).
+Full project documentation is available at the [Tychons docs site](https://cwlls.github.io/tychons/).
 
 ## License
 

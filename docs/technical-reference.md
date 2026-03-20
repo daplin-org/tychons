@@ -6,7 +6,7 @@ nav_order: 7
 
 # Technical Reference
 
-This page documents the exact algorithms, byte layouts, and formulas used by Tychon Badge. It is intended for implementers and anyone who needs to verify conformance with the [full specification](https://github.com/cwlls/tychons/blob/main/docs/src/tychons-spec-v0.1.0.md).
+This page documents the exact algorithms, byte layouts, and formulas used by Tychons. It is intended for implementers and anyone who needs to verify conformance with the [full specification](https://github.com/cwlls/tychons/blob/main/docs/src/tychons-spec-v0.1.0.md).
 
 For a conceptual overview, see [How It Works]({% link how-it-works.md %}).
 

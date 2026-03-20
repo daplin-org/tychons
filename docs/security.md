@@ -6,19 +6,19 @@ nav_order: 6
 
 # Security Considerations
 
-Tychon Badge is a human verification aid. Understanding what it protects against -- and what it does not -- is important for using it appropriately.
+Tychons is a human verification aid. Understanding what it protects against -- and what it does not -- is important for using it appropriately.
 
-## What Tychon Badge Is
+## What Tychons Is
 
-Tychon Badge helps people confirm that the public key they are looking at is the one they expect. It encodes key material into a visual format that humans can compare quickly and accurately. It is designed for the everyday scenario of verifying a known contact's key: "does this badge match the one I saw last time?"
+Tychons helps people confirm that the public key they are looking at is the one they expect. It encodes key material into a visual format that humans can compare quickly and accurately. It is designed for the everyday scenario of verifying a known contact's key: "does this badge match the one I saw last time?"
 
-## What Tychon Badge Is Not
+## What Tychons Is Not
 
-Tychon Badge is **not** a cryptographic commitment scheme. It does not replace digital signatures, certificate verification, or any other cryptographic protocol. It supplements these by making the human-facing step -- "is this the right key?" -- faster and more reliable.
+Tychons is **not** a cryptographic commitment scheme. It does not replace digital signatures, certificate verification, or any other cryptographic protocol. It supplements these by making the human-facing step -- "is this the right key?" -- faster and more reliable.
 
 ## Channel Independence
 
-The security of Tychon Badge rests on the independence of its three channels:
+The security of Tychons rests on the independence of its three channels:
 
 | Channel | Derived from | Context string |
 |---|---|---|
@@ -47,7 +47,7 @@ For any realistic population of keys a person encounters in their lifetime, the 
 
 ## Threat Model
 
-### Attacks Tychon Badge Mitigates
+### Attacks Tychons Mitigates
 
 - **Accidental key substitution.** A server key changes unexpectedly, a contact's key is replaced by a compromised one -- the badge will look different.
 - **Copy-paste errors.** Sharing a key over a messaging app and accidentally truncating it -- the badge will not match.
@@ -55,19 +55,19 @@ For any realistic population of keys a person encounters in their lifetime, the 
 
 In all these cases, the user compares the badge they see against a badge they previously saved or were given out of band. A mismatch on any channel (color, shape, words) signals a problem.
 
-### Attacks Tychon Badge Does Not Mitigate
+### Attacks Tychons Does Not Mitigate
 
-- **Targeted visual collision.** An adversary who can generate arbitrary key pairs could search for a key whose badge is similar to a target badge. With approximately 1.3 billion perceptually distinct badges, this is feasible with moderate computational resources. Tychon Badge is not designed for this threat.
+- **Targeted visual collision.** An adversary who can generate arbitrary key pairs could search for a key whose badge is similar to a target badge. With approximately 1.3 billion perceptually distinct badges, this is feasible with moderate computational resources. Tychons is not designed for this threat.
 - **Compromised display.** If an attacker controls the rendering environment (e.g., malware on the user's machine), they can display any badge they want regardless of the actual key.
 - **Social engineering.** If a user does not actually compare the badge or does not have a trusted reference badge, no visual scheme can help.
 
 ### High-Security Contexts
 
-In environments where targeted attacks are a concern, Tychon Badge should be used alongside -- not instead of -- traditional fingerprint verification. The badge provides a fast first check; the raw fingerprint provides cryptographic certainty.
+In environments where targeted attacks are a concern, Tychons should be used alongside -- not instead of -- traditional fingerprint verification. The badge provides a fast first check; the raw fingerprint provides cryptographic certainty.
 
 ## Accessibility and Color Vision
 
-Hue is a powerful discriminator for most users, but it is the channel most affected by color vision deficiency. Tychon Badge accounts for this:
+Hue is a powerful discriminator for most users, but it is the channel most affected by color vision deficiency. Tychons accounts for this:
 
 - **Constellation shape** (star count, positions, connectivity) does not depend on color perception at all.
 - **Star sizes** vary from small to large, providing a non-color visual signal.

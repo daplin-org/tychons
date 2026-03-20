@@ -6,7 +6,7 @@ nav_order: 3
 
 # How It Works
 
-Tychon Badge takes a public key and produces a small image. This page explains the process at a conceptual level. For the exact byte layouts, algorithms, and color formulas, see the [Technical Reference]({% link technical-reference.md %}).
+Tychons takes a public key and produces a small image. This page explains the process at a conceptual level. For the exact byte layouts, algorithms, and color formulas, see the [Technical Reference]({% link technical-reference.md %}).
 
 ## The Pipeline
 

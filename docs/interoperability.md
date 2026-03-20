@@ -6,7 +6,7 @@ nav_order: 8
 
 # Interoperability
 
-Tychon Badge is designed so that different implementations produce the same badge for the same input. This page explains what "same" means and what is allowed to vary.
+Tychons is designed so that different implementations produce the same badge for the same input. This page explains what "same" means and what is allowed to vary.
 
 ## Conformance Requirements
 
