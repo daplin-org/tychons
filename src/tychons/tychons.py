@@ -37,9 +37,11 @@ The search path can be overridden by passing wordlist_dir to Badge().
 
 import math
 import struct
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from xml.sax.saxutils import escape as _xml_escape
 
 try:
     import blake3
@@ -47,7 +49,10 @@ try:
 except ImportError:
     import hashlib
     HAS_BLAKE3 = False
-    print("Warning: blake3 not found, falling back to SHA-256. Install with: pip install blake3")
+    warnings.warn(
+        "blake3 not found, falling back to SHA-256. Install with: pip install blake3",
+        stacklevel=2,
+    )
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -58,7 +63,7 @@ except ImportError:
 
 # Default fonts directory — expects NotoSans-Regular.ttf (and NotoSansSC-Regular.ttf
 # for Chinese) placed here by the user.
-_DEFAULT_FONTS_DIR = Path(__file__).parent / "fonts"
+DEFAULT_FONTS_DIR = Path(__file__).parent / "fonts"
 
 # CJK language codes — matched to the wordlist filenames in wordlists/
 # These trigger CJK font selection and single-line label layout.
@@ -115,7 +120,7 @@ def _resolve_font_path(lang: str | None, fonts_dir: Path | str | None = None) ->
 
     Available from https://fonts.google.com/noto
     """
-    base = Path(fonts_dir) if fonts_dir else _DEFAULT_FONTS_DIR
+    base = Path(fonts_dir) if fonts_dir else DEFAULT_FONTS_DIR
     if lang:
         filename = _LANG_FONT_MAP.get(_lang_to_filename(lang), "NotoSans-Regular.ttf")
     else:
@@ -138,7 +143,7 @@ _FALLBACK_WORDLIST: list[str] = [
 ]
 
 # Default directory to search for <lang>.txt wordlist files.
-_DEFAULT_WORDLIST_DIR = Path(__file__).parent / "wordlists"
+DEFAULT_WORDLIST_DIR = Path(__file__).parent / "wordlists"
 
 
 def load_wordlist(lang: str, wordlist_dir: Path | str | None = None) -> list[str]:
@@ -172,7 +177,7 @@ def load_wordlist(lang: str, wordlist_dir: Path | str | None = None) -> list[str
     BIP-39 wordlists are available from:
         https://github.com/trezor/python-mnemonic/tree/master/src/mnemonic/wordlist
     """
-    search_dir = Path(wordlist_dir) if wordlist_dir else _DEFAULT_WORDLIST_DIR
+    search_dir = Path(wordlist_dir) if wordlist_dir else DEFAULT_WORDLIST_DIR
     path = search_dir / f"{_lang_to_filename(lang)}.txt"
     if not path.exists():
         raise FileNotFoundError(f"Wordlist not found: {path}")
@@ -204,7 +209,6 @@ def _derive(key: bytes, context: str, length: int = 32) -> bytes:
     else:
         # Fallback: HMAC-SHA256 with context as the salt
         import hmac
-        h = hmac.new(context.encode(), key, hashlib.sha256)
         # Extend output by hashing with counter if more than 32 bytes needed
         result = b""
         counter = 0
@@ -409,7 +413,6 @@ def _load_font(font_path: Path, size_px: int) -> "ImageFont.FreeTypeFont":
         except Exception:
             continue
     # True last resort — PIL default is always 10px, warn loudly
-    import warnings
     warnings.warn(
         "No suitable font found — text will render at 10px regardless of badge size. "
         "Place NotoSans-Regular.ttf in the fonts/ directory alongside tychons.py.",
@@ -533,7 +536,7 @@ def _render_svg(
     lr, lg, lb = label_color
     gradient_id = f"fade_{hue}"
     font_size = round(lo.font_size, 1)
-    label = f"{words[0]}  \u00b7  {words[1]}"
+    label = _xml_escape(f"{words[0]}  \u00b7  {words[1]}")
     _SVG_FONT_FAMILY = {
         "chinese_simplified":  "Noto Sans SC",
         "chinese_traditional": "Noto Sans TC",
@@ -662,6 +665,11 @@ class Badge:
         if isinstance(public_key, str):
             public_key = public_key.encode("utf-8")
 
+        if not isinstance(size, int) or size < 16 or size > 4096:
+            raise ValueError(
+                f"size must be an integer between 16 and 4096 inclusive, got {size!r}"
+            )
+
         self._key = public_key
         self._size = size
         self._bg = bg_color
@@ -738,10 +746,19 @@ def main() -> None:
 
     key_input = sys.argv[1]
     out_path = sys.argv[2] if len(sys.argv) > 2 else "badge.svg"
-    badge_size = int(sys.argv[3]) if len(sys.argv) > 3 else 128
     lang = sys.argv[4] if len(sys.argv) > 4 else None
 
-    badge = Badge(key_input, size=badge_size, lang=lang)
+    try:
+        badge_size = int(sys.argv[3]) if len(sys.argv) > 3 else 128
+    except ValueError:
+        print(f"Error: size must be an integer, got {sys.argv[3]!r}")
+        sys.exit(1)
+
+    try:
+        badge = Badge(key_input, size=badge_size, lang=lang)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        sys.exit(1)
 
     if str(out_path).endswith(".svg"):
         badge.save_svg(out_path)

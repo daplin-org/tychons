@@ -30,4 +30,5 @@ artifacts = [
 [tool.uv]
 dev-dependencies = [
     "Pillow",   # convenient to have raster output during development
+    "pytest",
 ]

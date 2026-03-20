@@ -22,7 +22,7 @@ Because each channel is derived from a separate BLAKE3 context, an attacker who 
 
 ## Quick Start
 
-Tychons requires **Python 3.13+** and two dependencies:
+Tychons requires **Python 3.11+** and two dependencies:
 
 ```bash
 pip install blake3 Pillow

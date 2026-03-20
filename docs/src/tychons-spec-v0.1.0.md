@@ -116,22 +116,35 @@ The first scalar determines the star count n:
 n = 6 + floor(scalars[0] * 4.99)       # n in {6, 7, 8, 9, 10}
 ```
 
+**Layout grid.** The canvas is divided into 10 equal divisions:
+
+```
+div          = size / 10.0
+pad          = div                    # 1 division from each edge
+star_x0      = pad
+star_x1      = size - pad             # star zone: divisions 1–9 (8 wide)
+star_y0      = pad
+star_y1      = size - pad * 3.5       # star zone: divisions 1–6.5 (5.5 tall)
+label_y0     = star_y1
+label_y1     = size - pad             # label zone: divisions 6.5–9 (2.5 tall)
+star_w       = star_x1 - star_x0     # = size * 0.8
+star_h       = star_y1 - star_y0     # = size * 0.55
+label_h      = label_y1 - label_y0   # = size * 0.25
+```
+
+At size=128: `div=12.8`, `pad=12.8`, `star_w=102.4`, `star_h=70.4`, `label_h=32`.
+
 For each star i in [0, n), read five consecutive scalars starting at index (1 + i * 5), wrapping modulo the available scalar count:
 
-| Parameter | Derivation | Range |
+| Parameter | Derivation | Range at size=128 |
 |---|---|---|
-| x position | `pad + scalars[idx] * inner_width` | [pad, size - pad] |
-| y position | `pad + scalars[idx+1] * inner_height` | [pad, size - pad - label_reserve] |
-| size (radius) | `1.5 + scalars[idx+2] * 3.0` | [1.5, 4.5] pixels at size=128 |
+| x position | `star_x0 + scalars[idx] * star_w` | [12.8, 115.2] |
+| y position | `star_y0 + scalars[idx+1] * star_h` | [12.8, 83.2] |
+| size (radius) | `size * 0.012 + scalars[idx+2] * size * 0.023` | [1.54, 4.48] pixels |
 | brightness | `0.45 + scalars[idx+3] * 0.55` | [0.45, 1.0] |
 | neighbour count | `1 + floor(scalars[idx+4] * 2.99)` | {1, 2, 3} |
 
-Where:
-
-- `pad` = max(8, floor(size / 12))
-- `inner_width` = size - 2 * pad
-- `inner_height` = inner_width - label_reserve
-- `label_reserve` = 18 pixels at size=128, scaled proportionally
+Star radius scales proportionally with badge size: `star_min = size * 0.012`, `star_max = size * 0.035`.
 
 ### 4.3 Edges
 
@@ -200,9 +213,11 @@ label_color = HSLA(hue, saturation=0.55, lightness=0.72, alpha=0.86)
 
 ## 6. Rendering
 
+Where this specification is ambiguous, the reference implementation (`src/tychons/tychons.py`) is authoritative.
+
 ### 6.1 Canvas
 
-The badge is a square raster image of configurable size. The RECOMMENDED default size is 128×128 pixels. Implementations SHOULD support sizes in the range [64, 256] pixels. The badge MUST be rendered with a transparent alpha channel to allow compositing.
+The badge is a square raster image of configurable size. The RECOMMENDED default size is 128×128 pixels. Implementations MUST support sizes in the range [16, 4096] pixels and SHOULD reject values outside this range with a clear error. The badge MUST be rendered with a transparent alpha channel to allow compositing.
 
 Implementations SHOULD render at 2× the target size and downsample using a high-quality filter (e.g. Lanczos) to achieve sub-pixel antialiasing without requiring a vector renderer.
 
@@ -212,7 +227,13 @@ A filled rounded rectangle covering the full canvas is drawn first, using the fi
 
 ### 6.3 Edges
 
-Edges MUST be rendered before stars so that stars appear on top. Each edge is drawn as a straight line segment between the pixel coordinates of its two endpoint stars. Edge width SHOULD be approximately 0.6 pixels at size=128, scaled proportionally. Edge color and alpha are computed per Section 5.3.
+Edges MUST be rendered before stars so that stars appear on top. Each edge is drawn as a straight line segment between the pixel coordinates of its two endpoint stars. Edge width scales proportionally with badge size:
+
+```
+edge_width = size * 0.008       # ≈ 1.0 pixel at size=128
+```
+
+Edge color and alpha are computed per Section 5.3.
 
 Implementations SHOULD render edges on a separate compositing layer to allow correct alpha blending against the background.
 
@@ -222,7 +243,7 @@ Each star is rendered as a filled circle centered at its derived position with r
 
 ### 6.5 Label
 
-A gradient fade from transparent to the background color is rendered at the bottom of the badge, covering approximately the bottom 17% of the canvas height. This provides contrast for the label text.
+A gradient fade from transparent to the background color is rendered over the label zone, covering the bottom 25% of the canvas height (divisions 6.5–9 in the 10-division grid). This provides contrast for the label text.
 
 The checksum phrase is rendered centered horizontally at the bottom of the badge in the format:
 
@@ -230,7 +251,15 @@ The checksum phrase is rendered centered horizontally at the bottom of the badge
 <word_1>  ·  <word_2>
 ```
 
-The interpunct (U+00B7) is used as the separator. Font size SHOULD be approximately 8.5pt at size=128. Label color is computed per Section 5.4.
+The interpunct (U+00B7) is used as the separator. Before interpolation into SVG output, all words MUST be XML-escaped to prevent injection of raw markup.
+
+Font size is derived from the label zone height:
+
+```
+font_size = (label_h * 0.60) / 1.20    # ≈ 16px at size=128
+```
+
+At size=128: `label_h=32`, so `font_size=16`. Implementations SHOULD clamp font size downward if the estimated text width exceeds the star zone width (`star_w`). Label color is computed per Section 5.4.
 
 ### 6.6 Clipping
 
