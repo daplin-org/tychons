@@ -16,9 +16,11 @@
 
 import pathlib
 import tempfile
+from unittest.mock import patch
 
 import pytest
 from tychons import Badge
+from tychons.tychons import _derive, _derive_hue, _derive_stars, _derive_words, _FALLBACK_WORDLIST
 
 
 def test_phrase_determinism(sample_key):
@@ -59,3 +61,57 @@ def test_word_derivation_uses_wordlist(tmp_path):
 
     assert badge.words[0] in custom_words
     assert badge.words[1] in custom_words
+
+
+# ---------------------------------------------------------------------------
+# Task 3.1 — Regression test vectors for the spec sample key
+# ---------------------------------------------------------------------------
+
+def test_spec_test_vector_values():
+    """Assert concrete derived values for the spec sample key using BLAKE3."""
+    key = b"ssh-rsa AAAAB3NzaC1yc2E"
+    hue = _derive_hue(key)
+    stars = _derive_stars(key, 128)
+    w1, w2 = _derive_words(key, _FALLBACK_WORDLIST)
+
+    assert hue == 225, f"Expected hue=225, got {hue}"
+    assert len(stars) == 7, f"Expected 7 stars, got {len(stars)}"
+    assert w1 == "basil", f"Expected word1='basil', got {w1!r}"
+    assert w2 == "cliff", f"Expected word2='cliff', got {w2!r}"
+
+
+# ---------------------------------------------------------------------------
+# Task 3.2 — HMAC-SHA256 fallback tests
+# ---------------------------------------------------------------------------
+
+def test_hmac_fallback_derive():
+    """_derive() with HAS_BLAKE3=False returns correct lengths and is deterministic."""
+    key = b"test-key"
+    context = "tychons v1 hue"
+
+    with patch("tychons.tychons.HAS_BLAKE3", False):
+        out32 = _derive(key, context, length=32)
+        assert len(out32) == 32, f"Expected 32 bytes, got {len(out32)}"
+
+        out64 = _derive(key, context, length=64)
+        assert len(out64) == 64, f"Expected 64 bytes, got {len(out64)}"
+
+        # Deterministic: same inputs produce same output
+        out32b = _derive(key, context, length=32)
+        assert out32 == out32b, "HMAC fallback is not deterministic"
+
+    # Output should differ from BLAKE3 path
+    import tychons.tychons as _mod
+    if _mod.HAS_BLAKE3:
+        blake3_out = _derive(key, context, length=32)
+        assert out32 != blake3_out, "HMAC fallback should differ from BLAKE3"
+
+
+def test_hmac_fallback_badge():
+    """Badge with HAS_BLAKE3=False produces valid SVG without error."""
+    with patch("tychons.tychons.HAS_BLAKE3", False):
+        badge = Badge(b"ssh-rsa AAAAB3NzaC1yc2E")
+        svg = badge.svg
+        assert svg.startswith("<svg"), "SVG output should start with <svg"
+        assert "word" not in svg or True  # just ensure no exception was raised
+        assert badge.phrase  # non-empty phrase

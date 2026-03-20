@@ -24,7 +24,7 @@ Where `key_bytes` is the public key string encoded as UTF-8 bytes.
 
 ### Fallback: HMAC-SHA256
 
-Implementations without BLAKE3 may substitute HMAC-SHA256 with the context string as the HMAC key and the public key bytes as the message. This produces different output and is not interoperable with BLAKE3-based implementations.
+Implementations without BLAKE3 may substitute HMAC-SHA256 using the public key bytes (concatenated with a 4-byte big-endian counter) as the HMAC key and the context string as the message (HKDF-like pattern). Output longer than 32 bytes is produced by incrementing the counter and concatenating results. This produces different output and is not interoperable with BLAKE3-based implementations.
 
 ### Context Strings
 
@@ -83,20 +83,30 @@ For each star `i` in `[0, n)`, read 5 scalars starting at index `1 + i * 5`, wra
 
 | Scalar | Parameter | Formula | Range |
 |---|---|---|---|
-| `scalars[idx]` | x position | `pad + scalar * inner_width` | [pad, size - pad] |
-| `scalars[idx+1]` | y position | `pad + scalar * inner_height` | [pad, size - pad - label_reserve] |
-| `scalars[idx+2]` | radius | `1.5 + scalar * 3.0` | [1.5, 4.5] px at size=128 |
+| `scalars[idx]` | x position | `star_x0 + scalar * star_w` | [div, 9*div] |
+| `scalars[idx+1]` | y position | `star_y0 + scalar * star_h` | [div, 6.5*div] |
+| `scalars[idx+2]` | radius | `size*0.012 + scalar * (size*0.035 - size*0.012)` | [1.536, 4.48] px at size=128 |
 | `scalars[idx+3]` | brightness | `0.45 + scalar * 0.55` | [0.45, 1.0] |
 | `scalars[idx+4]` | neighbor count | `1 + floor(scalar * 2.99)` | {1, 2, 3} |
 
-### Layout Constants (at size=128)
+### Layout Constants — 10-Division Grid Model
+
+The canvas is divided into 10 equal divisions in each axis:
 
 ```
-pad = max(8, floor(size / 12))
-inner_width = size - 2 * pad
-label_reserve = 18
-inner_height = inner_width - label_reserve
+div = size / 10
+
+pad = div                          (1 division from each edge)
+star zone x: [div, 9*div]          (8 divisions wide)
+star zone y: [div, 6.5*div]        (5.5 divisions tall, from top)
+label zone y: [6.5*div, 9*div]     (2.5 divisions tall)
+
+star_w = 8 * div
+star_h = 5.5 * div
+label_h = 2.5 * div
 ```
+
+At size=128: `div = 12.8px`, `star zone` is `102.4 × 70.4 px`, `label zone` is `102.4 × 32.0 px`.
 
 All values scale proportionally with badge size.
 
@@ -164,10 +174,10 @@ Standard CSS Color Module Level 3 conversion. The reference implementation inclu
 
 1. **Canvas:** Create an RGBA image at `2 * size` pixels (2x supersampling).
 2. **Background:** Draw a filled rounded rectangle with corner radius `~ size / 10` (scaled to 2x), filled with `RGB(8, 13, 20)`.
-3. **Edges:** On a separate RGBA layer, draw each edge as a line segment between its endpoint star coordinates (scaled to 2x). Line width `~ 0.6px` at size=128, scaled proportionally. Alpha-composite the edge layer onto the main image.
+3. **Edges:** On a separate RGBA layer, draw each edge as a line segment between its endpoint star coordinates (scaled to 2x). Line width `size * 0.008` (= `1.024px` at size=128), scaled to 2x. Alpha-composite the edge layer onto the main image.
 4. **Stars:** Draw each star as a filled circle at its position (scaled to 2x) with the derived radius (scaled to 2x).
-5. **Gradient:** Draw a fade from transparent to the background color over the bottom ~17% of the canvas for label contrast.
-6. **Label:** Render `"word_1  ·  word_2"` centered horizontally near the bottom. Font size ~8.5pt at size=128. The interpunct is U+00B7.
+5. **Gradient:** Draw a fade from transparent to the background color over the label zone (bottom 25% of canvas), for label contrast.
+6. **Label:** Render `"word_1  ·  word_2"` centered horizontally near the bottom. Font size = `label_h * 0.60 / 1.20` (= `~16px` at size=128, where `label_h = 2.5 * div`). The interpunct is U+00B7.
 7. **Downsample:** Resize from `2 * size` to `size` using Lanczos filtering.
 8. **Mask:** Apply a rounded rectangle alpha mask (corner radius ~12px at size=128) so the badge has transparent corners.
 

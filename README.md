@@ -31,7 +31,7 @@ pip install blake3 Pillow
 ### As a library
 
 ```python
-from tychons.tychons import Badge
+from tychons import Badge
 
 badge = Badge("ssh-rsa AAAAB3NzaC1yc2E...")
 badge.save("my_key.png")
@@ -41,7 +41,7 @@ print(badge.phrase)  # e.g. "birch · nova"
 ### From the command line
 
 ```bash
-python src/tychons/tychons.py "ssh-rsa AAAAB3NzaC1yc2E..." badge.png 128
+python src/tychons/tychons.py "ssh-rsa AAAAB3NzaC1yc2E..." badge.svg 128
 ```
 
 ### With a BIP-39 wordlist

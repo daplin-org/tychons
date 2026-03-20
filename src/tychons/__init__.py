@@ -15,4 +15,6 @@
 # limitations under the License.
 from .tychons import Badge, load_wordlist, DEFAULT_FONTS_DIR, DEFAULT_WORDLIST_DIR
 
-__all__ = ["Badge", "load_wordlist", "DEFAULT_FONTS_DIR", "DEFAULT_WORDLIST_DIR"]
+__version__ = "0.1.0"
+
+__all__ = ["Badge", "load_wordlist", "DEFAULT_FONTS_DIR", "DEFAULT_WORDLIST_DIR", "__version__"]

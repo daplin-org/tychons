@@ -103,6 +103,23 @@ def _is_cjk(lang: str | None) -> bool:
     return lang is not None and lang.lower() in _CJK_LANGS
 
 
+import re as _re
+_LANG_PATTERN = _re.compile(r'^[a-zA-Z0-9_-]+$')
+
+
+def _validate_lang(lang: str) -> None:
+    """Raise ValueError if lang contains characters outside [a-zA-Z0-9_-].
+
+    This prevents path traversal attacks (e.g. '../../etc/passwd') from
+    reaching the filesystem when constructing wordlist file paths.
+    """
+    if not _LANG_PATTERN.match(lang):
+        raise ValueError(
+            f"Invalid lang code {lang!r}: only alphanumeric characters, "
+            "hyphens, and underscores are allowed."
+        )
+
+
 def _lang_to_filename(lang: str) -> str:
     """Resolve a lang code to its wordlist filename stem."""
     return _LANG_FILE_MAP.get(lang.lower(), lang.lower())
@@ -177,6 +194,7 @@ def load_wordlist(lang: str, wordlist_dir: Path | str | None = None) -> list[str
     BIP-39 wordlists are available from:
         https://github.com/trezor/python-mnemonic/tree/master/src/mnemonic/wordlist
     """
+    _validate_lang(lang)
     search_dir = Path(wordlist_dir) if wordlist_dir else DEFAULT_WORDLIST_DIR
     path = search_dir / f"{_lang_to_filename(lang)}.txt"
     if not path.exists():
@@ -195,6 +213,7 @@ def _resolve_wordlist(lang: str | None, wordlist_dir: Path | str | None) -> list
     delegates to load_wordlist()."""
     if lang is None:
         return _FALLBACK_WORDLIST
+    _validate_lang(lang)  # defense-in-depth: validate before any path construction
     return load_wordlist(lang, wordlist_dir)
 
 
@@ -207,13 +226,14 @@ def _derive(key: bytes, context: str, length: int = 32) -> bytes:
     if HAS_BLAKE3:
         return blake3.blake3(key, derive_key_context=context).digest(length=length)
     else:
-        # Fallback: HMAC-SHA256 with context as the salt
+        # Fallback: HMAC-SHA256 with key material as HMAC key, context as message (HKDF-like pattern)
         import hmac
+        import hashlib
         # Extend output by hashing with counter if more than 32 bytes needed
         result = b""
         counter = 0
         while len(result) < length:
-            result += hmac.new(context.encode(), key + counter.to_bytes(4, "big"), hashlib.sha256).digest()
+            result += hmac.new(key + counter.to_bytes(4, "big"), context.encode(), hashlib.sha256).digest()
             counter += 1
         return result[:length]
 
@@ -365,11 +385,11 @@ def _line_color(hue: int, brightness: float, alpha: float) -> tuple[int, int, in
     return (r, g, b, int(alpha * 255))
 
 
-def _hsl_to_rgb(h: int, s: float, l: float) -> tuple[int, int, int]:
+def _hsl_to_rgb(h: int, s: float, lightness: float) -> tuple[int, int, int]:
     h = h % 360
-    c = (1 - abs(2 * l - 1)) * s
+    c = (1 - abs(2 * lightness - 1)) * s
     x = c * (1 - abs((h / 60) % 2 - 1))
-    m = l - c / 2
+    m = lightness - c / 2
     if   h < 60:  r, g, b = c, x, 0
     elif h < 120: r, g, b = x, c, 0
     elif h < 180: r, g, b = 0, c, x
@@ -471,7 +491,6 @@ def _render(
 
     # Label — grid layout, font sized by label zone height then clamped to width
     lo = _layout(size)
-    cjk = _is_cjk(lang)
     label = f"{words[0]}  \u00b7  {words[1]}"
     label_col = _hsl_to_rgb(hue, 0.55, 0.72) + (220,)
     font_size_1x = int(lo.font_size)
@@ -670,6 +689,15 @@ class Badge:
                 f"size must be an integer between 16 and 4096 inclusive, got {size!r}"
             )
 
+        if (
+            not isinstance(bg_color, tuple)
+            or len(bg_color) != 3
+            or not all(isinstance(c, int) and 0 <= c <= 255 for c in bg_color)
+        ):
+            raise ValueError(
+                f"bg_color must be a 3-tuple of ints each in [0, 255], got {bg_color!r}"
+            )
+
         self._key = public_key
         self._size = size
         self._bg = bg_color
@@ -756,7 +784,7 @@ def main() -> None:
 
     try:
         badge = Badge(key_input, size=badge_size, lang=lang)
-    except ValueError as exc:
+    except (ValueError, FileNotFoundError) as exc:
         print(f"Error: {exc}")
         sys.exit(1)
 

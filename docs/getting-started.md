@@ -33,7 +33,7 @@ uv sync
 ### Python API
 
 ```python
-from tychons.tychons import Badge
+from tychons import Badge
 
 # Create a badge from any public key string
 badge = Badge("ssh-rsa AAAAB3NzaC1yc2E...")
@@ -51,15 +51,17 @@ img = badge.image
 ### Command Line
 
 ```bash
-python src/tychons/tychons.py "ssh-rsa AAAAB3NzaC1yc2E..." badge.png 128
+python src/tychons/tychons.py "ssh-rsa AAAAB3NzaC1yc2E..." badge.svg 128
 ```
+
+The output format is inferred from the file extension. Use `.svg` (default, no Pillow required) or `.png` (requires Pillow).
 
 Arguments:
 
 | Position | Description | Default |
 |---|---|---|
 | 1 | Public key string (required) | -- |
-| 2 | Output file path | `badge.png` |
+| 2 | Output file path | `badge.svg` |
 | 3 | Badge size in pixels | `128` |
 
 ## Options

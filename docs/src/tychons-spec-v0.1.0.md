@@ -349,13 +349,11 @@ Implementations SHOULD verify conformance against the following test vectors. In
 
 ```
 Input:  "ssh-rsa AAAAB3NzaC1yc2E"
-Hue:    [to be completed by reference implementation]
-Stars:  [to be completed by reference implementation]
-Word 1: [to be completed by reference implementation]
-Word 2: [to be completed by reference implementation]
+Hue:    225
+Stars:  7
+Word 1: basil
+Word 2: cliff
 ```
-
-Test vectors will be populated upon publication of the reference implementation.
 
 ---
 

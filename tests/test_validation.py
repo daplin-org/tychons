@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for Badge size parameter validation."""
+"""Tests for Badge parameter validation: size, lang, and bg_color."""
 
 import pytest
 from tychons import Badge
@@ -56,3 +56,80 @@ def test_size_float_raises():
 def test_size_default_succeeds():
     badge = Badge("key")
     assert badge is not None
+
+
+# ---------------------------------------------------------------------------
+# Task 3.3 — lang path traversal security tests
+# ---------------------------------------------------------------------------
+
+def test_lang_path_traversal_dot_dot():
+    """lang='../../etc/passwd' raises ValueError before any filesystem access."""
+    with pytest.raises(ValueError, match="Invalid lang code"):
+        Badge("key", lang="../../etc/passwd")
+
+
+def test_lang_path_traversal_slash():
+    """lang='foo/bar' raises ValueError before any filesystem access."""
+    with pytest.raises(ValueError, match="Invalid lang code"):
+        Badge("key", lang="foo/bar")
+
+
+def test_lang_null_byte():
+    """lang with a null byte raises ValueError before any filesystem access."""
+    with pytest.raises(ValueError, match="Invalid lang code"):
+        Badge("key", lang="en\x00")
+
+
+def test_lang_valid_codes():
+    """Valid lang codes pass the validation step (may raise FileNotFoundError if no wordlist)."""
+    for code in ("en", "zh-hans", "chinese_simplified"):
+        try:
+            Badge("key", lang=code)
+        except FileNotFoundError:
+            pass  # acceptable — wordlist file simply not present in test environment
+        except ValueError as exc:
+            pytest.fail(f"lang={code!r} should not raise ValueError, got: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Task 3.4 — bg_color validation tests
+# ---------------------------------------------------------------------------
+
+def test_bg_color_default_succeeds():
+    badge = Badge("key", bg_color=(8, 13, 20))
+    assert badge is not None
+
+
+def test_bg_color_black_succeeds():
+    badge = Badge("key", bg_color=(0, 0, 0))
+    assert badge is not None
+
+
+def test_bg_color_white_succeeds():
+    badge = Badge("key", bg_color=(255, 255, 255))
+    assert badge is not None
+
+
+def test_bg_color_value_too_high_raises():
+    with pytest.raises(ValueError):
+        Badge("key", bg_color=(256, 0, 0))
+
+
+def test_bg_color_negative_value_raises():
+    with pytest.raises(ValueError):
+        Badge("key", bg_color=(-1, 0, 0))
+
+
+def test_bg_color_wrong_length_raises():
+    with pytest.raises(ValueError):
+        Badge("key", bg_color=(0, 0))
+
+
+def test_bg_color_list_raises():
+    with pytest.raises(ValueError):
+        Badge("key", bg_color=[8, 13, 20])
+
+
+def test_bg_color_float_element_raises():
+    with pytest.raises(ValueError):
+        Badge("key", bg_color=(8.0, 13, 20))
