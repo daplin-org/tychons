@@ -1,0 +1,32 @@
+title: Tychon Badge
+description: Visual identity badges for public cryptographic keys
+theme: just-the-docs
+
+url: "https://cwlls.github.io"
+baseurl: "/tychons"
+
+# Exclude the spec source directory and other non-site files
+exclude:
+  - src
+  - "*.py"
+  - __pycache__
+
+# Navigation ordering
+just_the_docs:
+  collections: {}
+
+# Enable search
+search_enabled: true
+search.heading_level: 3
+
+# Footer
+gh_edit_link: false
+
+# Color scheme
+color_scheme: dark
+
+# Aux links (top right)
+aux_links:
+  "View on GitHub":
+    - "https://github.com/cwlls/tychons"
+aux_links_new_tab: true
